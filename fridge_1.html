@@ -7,7 +7,7 @@
 <style>
   :root {
     --bg1: #dff1fb; --bg2: #f5fbff; --text: #16303f; --muted: #5d7684; --card: rgba(255,255,255,.8); --line: #d3e4ee;
-    --fresh: #18a866; --soon: #e59a0b; --check: #e04343; --ice: #4cb8ec;
+    --fresh: #18a866; --soon: #e59a0b; --check: #e04343; --ice: #4cb8ec; --fault: #8e5bd6;
     --body: #f4f8fb; --body-edge: #c9d6df; --ring-in: #f5fbff;
   }
   @media (prefers-color-scheme: dark) {
@@ -29,6 +29,39 @@
   .sim { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); }
   .sim button { font-size: 13px; padding: 7px 11px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--text); }
   .sim button.on { background: var(--text); color: var(--bg2); border-color: var(--text); }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .toolbar select, .toolbar button, .btn { font-size: 13px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  .btn.primary, .toolbar .primary { background: var(--ice); border-color: var(--ice); color: #fff; font-weight: 600; }
+  body:not(.is-admin) .admin-only { display: none !important; }
+  .role-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--line); }
+  body.is-admin .role-badge { background: var(--ice); color: #fff; }
+  /* Sensor fault */
+  .fridge.fault .inner { filter: grayscale(.75) brightness(.95); }
+  .fridge.fault .cab { border-color: var(--fault); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fault) 40%, transparent), 0 10px 24px rgba(20,60,90,.2); }
+  .faulttag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); z-index: 4; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+              background: repeating-linear-gradient(45deg, var(--fault) 0 8px, color-mix(in srgb, var(--fault) 80%, #000) 8px 16px); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); opacity: 0; transition: opacity .3s; }
+  .fridge.fault .faulttag { opacity: 1; }
+  .fi.st-SENSOR_FAULT { border-style: dashed; }
+  /* Forms (Settings + Register) */
+  .sheet.wide { width: min(660px, 100%); }
+  .hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .sheet h4 { font-size: 13px; margin: 14px 0 8px; }
+  .fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .fgrid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .fgrid input, .fgrid select, .manual input { font: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--text); background: color-mix(in srgb, var(--line) 45%, transparent);
+                                  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .fgrid input[readonly] { opacity: .7; }
+  .fgrid input.bad, .fgrid select.bad { border-color: var(--check); }
+  .err { color: var(--check); font-size: 13px; margin-top: 10px; min-height: 1em; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+  .qrbox { min-height: 230px; border-radius: 14px; background: #0b1419; display: grid; place-items: center; color: #8fa9b8; font-size: 13px; overflow: hidden; margin-bottom: 10px; text-align: center; padding: 10px; }
+  .qrbox video { width: 100%; }
+  .manual { display: flex; gap: 8px; margin-top: 10px; } .manual input { flex: 1; }
+  .suggest { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--ice) 14%, transparent); margin-top: 12px; }
+  .mode-tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--fresh); color: #fff; margin-bottom: 8px; }
+  .mode-tag.edit { background: var(--soon); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 20px); background: var(--text); color: var(--bg2); padding: 10px 18px; border-radius: 12px; font-size: 14px; opacity: 0; transition: .3s; z-index: 80; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   .stage { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; margin-bottom: 20px; }
   .card { background: var(--card); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
@@ -61,7 +94,9 @@
     content: ""; position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(115deg, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 60%, rgba(255,255,255,.18) 75%, rgba(255,255,255,0) 90%);
   }
-  .freezer .inner { background: linear-gradient(#e4f5ff, #c9e7f8); display: flex; flex-direction: column; }
+  .freezer .inner { background: linear-gradient(#e4f5ff, #c9e7f8); display: grid; grid-template-columns: 1fr 150px; }
+  .freezer .doorbins { border-left-color: rgba(255,255,255,.85); background: rgba(255,255,255,.3); }
+  .freezer .doorbins .zone::after { background: rgba(170,215,240,.55); }
   .main .inner { background: linear-gradient(#f6e8d2, #e6cfae); display: grid; grid-template-columns: 1fr 150px; }
   .shelves { display: flex; flex-direction: column; }
   .zone { position: relative; flex: 1; padding: 22px 12px 8px; display: flex; flex-wrap: wrap; align-content: flex-end; gap: 10px 12px; border-bottom: 6px solid rgba(150,105,60,.4); }
@@ -132,7 +167,20 @@
   .attn li { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px; border-radius: 10px; cursor: pointer; background: color-mix(in srgb, var(--line) 40%, transparent); }
   .attn li:hover { background: var(--line); }
   .attn .em { font-size: 20px; } .attn small { color: var(--muted); display: block; font-size: 11px; }
-  .side .card:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .side .grow { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .side .grow.inv { flex: 1.6; }
+  .side .grow:not(.inv) { flex: .7; }
+  .abadge { margin-left: auto; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: #fff; background: var(--fresh); }
+  .alist { list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 158px; overflow-y: auto; padding-right: 4px; }
+  .alist li { display: flex; gap: 8px; align-items: flex-start; padding: 7px 9px; border-radius: 10px; font-size: 13px;
+              border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .alist li[data-id] { cursor: pointer; }
+  .alist b { color: var(--c); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  .alist small { display: block; color: var(--muted); font-size: 11.5px; }
+  .alist .ok { border-left-color: var(--fresh); --c: var(--fresh); }
+  .attn { overflow-y: auto; min-height: 0; flex: 1; padding-right: 4px; }
+  .cnt { cursor: pointer; border: 2px solid transparent; font: inherit; font-size: 12px; font-weight: 700; }
+  .cnt.sel { border-color: var(--text); }
   .events { list-style: none; flex: 1; overflow-y: auto; }
   .events li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 13px; align-items: flex-start; }
   .events li:last-child { border: 0; }
@@ -177,7 +225,7 @@
   @media (max-width: 560px) {
     .fridge { height: 900px; }
     .cab.freezer { height: 250px; } .cab.main { height: 642px; }
-    .main .inner { grid-template-columns: 1fr 84px; }
+    .main .inner, .freezer .inner { grid-template-columns: 1fr 84px; }
     .fi { width: 60px; } .doorbins .fi { width: 56px; }
   }
 </style>
@@ -200,6 +248,15 @@
       <div class="logo"><svg class="i"><use href="#i-snow"/></svg></div>
       <div><h1>Fresh Guard</h1><small>Fridge <b id="device">--</b> · updated <b id="updated">--</b></small></div>
     </div>
+    <div class="toolbar">
+      <span class="role-badge" id="roleBadge">USER</span>
+      <select id="roleSel" aria-label="Role (demo)">
+        <option value="user">👤 User (view only)</option>
+        <option value="admin">🛡️ Administrator</option>
+      </select>
+      <button class="primary admin-only" id="regBtn">＋ Register food</button>
+      <button class="admin-only" id="setBtn">⚙️ Settings</button>
+    </div>
     <div class="sim" id="sim">
       Demo scenarios:
       <button data-s="normal" class="on">😊 Normal</button>
@@ -208,6 +265,7 @@
       <button data-s="spoil">🤢 Spoiled smell</button>
       <button data-s="soon">⏰ Near limit</button>
       <button data-s="expired">📅 Expired</button>
+      <button data-s="fault">⚠️ Sensor fault</button>
       <button id="doorBtn">🚪 Open door</button>
     </div>
   </header>
@@ -225,9 +283,15 @@
 
       <div class="cab freezer">
         <span class="led" id="led"></span>
+        <span class="faulttag">⚠️ SENSOR FAULT · Data unavailable</span>
         <div class="inner">
-          <div class="zone" data-zone="Freezer upper"><span class="zlabel">❄ Freezer · upper</span></div>
-          <div class="zone" data-zone="Freezer lower"><span class="zlabel">❄ Freezer · lower</span></div>
+          <div class="shelves">
+            <div class="zone" data-zone="Freezer upper"><span class="zlabel">❄ Freezer · upper</span></div>
+            <div class="zone" data-zone="Freezer lower"><span class="zlabel">❄ Freezer · lower</span></div>
+          </div>
+          <div class="doorbins">
+            <div class="zone" data-zone="Freezer door bin"><span class="zlabel">Door bin</span></div>
+          </div>
         </div>
         <div class="handle"></div>
       </div>
@@ -263,12 +327,17 @@
       </div>
 
       <div class="card">
+        <h2>🚨 Active alerts <span class="abadge" id="aCount">0</span></h2>
+        <ul class="alist" id="alist"></ul>
+      </div>
+
+      <div class="card">
         <h2>📡 Sensors</h2>
         <div class="mgrid">
           <div class="m"><div class="ic" id="tIc"><svg class="i"><use href="#i-therm"/></svg></div>
             <div><div class="k">Temperature</div><div class="v" id="mTemp">--</div><div class="s" id="mTempS">--</div></div></div>
           <div class="m"><div class="ring" id="hRing"><div><svg class="i" style="color:var(--ice)"><use href="#i-drop"/></svg></div></div>
-            <div><div class="k">Humidity</div><div class="v" id="mHum">--</div><div class="s" style="color:var(--muted)">Ideal 50–70%</div></div></div>
+            <div><div class="k">Humidity</div><div class="v" id="mHum">--</div><div class="s" id="hNote">--</div></div></div>
           <div class="m"><div class="ring" id="gRing"><div><svg class="i" id="gIc"><use href="#i-wind"/></svg></div></div>
             <div><div class="k">Gas</div><div class="v" id="mGas">--</div><div class="s" id="mGasS">--</div></div></div>
           <div class="m"><div class="ic" id="dIc"><svg class="i"><use href="#i-door"/></svg></div>
@@ -276,13 +345,13 @@
         </div>
       </div>
 
-      <div class="card">
-        <h2>🧺 Food inventory</h2>
+      <div class="card grow inv">
+        <h2>🧺 Food inventory <small style="font-weight:400;color:var(--muted);font-size:11px">· click an item for details</small></h2>
         <div class="counts" id="counts"></div>
         <ul class="attn" id="attn"></ul>
       </div>
 
-      <div class="card">
+      <div class="card grow">
         <h2><svg class="i"><use href="#i-bell"/></svg>Notifications</h2>
         <ul class="events" id="events"></ul>
       </div>
@@ -302,6 +371,82 @@
     </table></div>
   </details>
 </div>
+
+<!-- Settings: Monitoring limits (UC07, Administrator only) -->
+<div class="modal" id="setModal" hidden>
+  <div class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheet-head"><div class="big">⚙️</div><div><h3 id="setTitle">Monitoring limits</h3><span class="chip">Administrator only</span></div>
+      <button class="x" data-close aria-label="Close">✕</button></div>
+    <p class="hint">Limits used by the Freshness Engine. Changes apply from the next evaluation. Last changed: <b id="cfgMeta">--</b></p>
+    <form id="setForm" novalidate>
+      <h4>🌡️ Temperature</h4>
+      <div class="fgrid">
+        <label>Warning above (°C)<input type="number" step="0.5" name="tempWarn"></label>
+        <label>Critical above (°C)<input type="number" step="0.5" name="tempCrit"></label>
+      </div>
+      <h4>💧 Humidity (environmental warning)</h4>
+      <div class="fgrid">
+        <label>Normal min (%)<input type="number" name="humMin"></label>
+        <label>Normal max (%)<input type="number" name="humMax"></label>
+      </div>
+      <h4>🧪 Gas &amp; 🚪 Door</h4>
+      <div class="fgrid">
+        <label>Gas warning above (raw)<input type="number" name="gasWarn"></label>
+        <label>Max door-open time (s)<input type="number" name="doorSec"></label>
+      </div>
+      <h4>🧊 Storage duration limit per category (days)</h4>
+      <div class="fgrid" id="catFields"></div>
+      <div class="err" id="setErr"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="setReset">Reset defaults</button>
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save limits</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Register / update food item by QR (UC01 / UC02, Administrator only) -->
+<div class="modal" id="regModal" hidden>
+  <div class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="regTitle">
+    <div class="sheet-head"><div class="big">🏷️</div><div><h3 id="regTitle">Register food item</h3><span class="chip">Scan the QR sticker on the container</span></div>
+      <button class="x" data-close aria-label="Close">✕</button></div>
+
+    <div id="scanStep">
+      <div class="qrbox" id="qrReader">Camera preview appears here</div>
+      <div class="actions" style="justify-content:flex-start;margin-top:0">
+        <button class="btn primary" id="camBtn">📷 Start camera</button>
+        <button class="btn" id="simScanBtn">🎲 Simulate scan (demo)</button>
+      </div>
+      <div class="manual"><input id="manualId" placeholder="…or type the Food ID, e.g. FD-0200"><button class="btn" id="manualBtn">Continue</button></div>
+      <div class="err" id="scanErr"></div>
+    </div>
+
+    <form id="foodForm" novalidate hidden>
+      <span class="mode-tag" id="modeTag">NEW ITEM</span>
+      <div class="fgrid">
+        <label>Food ID<input name="food_id" readonly></label>
+        <label>Name *<input name="food_name" placeholder="e.g. Greek yogurt"></label>
+        <label>Category *<select name="category"></select></label>
+        <label>Icon<select name="emoji"></select></label>
+        <label>Quantity *<input name="quantity" placeholder="e.g. 500 g"></label>
+        <label>Storage location *<select name="storage_location"></select></label>
+        <label>Stored on (auto)<input name="inserted_at" type="date" readonly></label>
+        <label>Manufacture date<input name="manufacture_date" type="date"></label>
+        <label>Expiry / best-before<input name="expiry_date" type="date"></label>
+      </div>
+      <div class="suggest" id="suggest">--</div>
+      <div class="err" id="formErr"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="backBtn">← Scan again</button>
+        <button type="submit" class="btn primary">Save item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 
 <!-- Food detail popup -->
 <div class="modal" id="modal" hidden>
@@ -323,6 +468,7 @@
     <div class="store-top"><b>🧊 Storage time</b><span class="store-big" id="dDays">--</span></div>
     <div class="meter"><span class="warn" id="dWarn"></span><i id="dBar"></i></div>
     <div class="store-note"><span id="dRule">--</span><span id="dState">--</span></div>
+    <div class="actions admin-only"><button class="btn primary" id="editBtn">✏️ Edit item</button></div>
   </div>
 </div>
 
@@ -337,9 +483,10 @@ const STATUS = {
   FRESH:      { text: "FRESH",         short: "Fresh",       face: "😊", color: "var(--fresh)" },
   USE_SOON:   { text: "USE SOON",      short: "Use soon",   face: "😐", color: "var(--soon)"  },
   CHECK_FOOD: { text: "CHECK FOOD",    short: "Check",   face: "😨", color: "var(--check)" },
+  SENSOR_FAULT: { text: "SENSOR FAULT", short: "Sensor fault", face: "⚠️", color: "var(--fault)" }, // separate state: red LED + own flag
 };
-const BACKEND_STATUS = { "Fresh / Normal": "FRESH", "Use Soon": "USE_SOON", "Check Food": "CHECK_FOOD" };
-const SEV = { FRESH: 0, USE_SOON: 1, CHECK_FOOD: 2 };
+const BACKEND_STATUS = { "Fresh / Normal": "FRESH", "Use Soon": "USE_SOON", "Check Food": "CHECK_FOOD", "Sensor Fault": "SENSOR_FAULT" };
+const SEV = { FRESH: 0, USE_SOON: 1, CHECK_FOOD: 2, SENSOR_FAULT: 3 };
 // Same as FOOD_STORAGE_PROFILES in backend/app/services/freshness.py
 const CATEGORY = {
   MEAT:        { name: "Meat / seafood", max: 3,  warn: 1 },
@@ -348,8 +495,11 @@ const CATEGORY = {
   FRUIT:       { name: "Fruit",       max: 14, warn: 1 },
   COOKED_FOOD: { name: "Cooked food",    max: 4,  warn: 1 },
 };
-const GAS_WARN = 400;      // DEMO — backend does not evaluate gas yet
-const DOOR_WARN_SEC = 30;  // = DOOR_OPEN_TIMEOUT_SECONDS
+// Monitoring limits — editable by the Administrator in Settings (UC07)
+const DEFAULTS = { tempWarn: 8, tempCrit: 12, humMin: 50, humMax: 90, gasWarn: 400, doorSec: 30,
+                   cat: { MEAT: 3, DAIRY: 14, VEGETABLE: 7, FRUIT: 14, COOKED_FOOD: 4 } };
+const CFG = { ...DEFAULTS, cat: { ...DEFAULTS.cat }, updatedBy: "System default", updatedAt: null };
+// gasWarn is DEMO only — backend does not evaluate gas with a fixed threshold
 
 const DAY = 86400000;
 const dISO = n => new Date(Date.now() + n * DAY).toISOString().slice(0, 10);
@@ -360,6 +510,7 @@ const BASE_FOODS = [
   F("FD-0101", "🦐", "Frozen shrimp",   "MEAT",        "1 kg",     "Freezer upper", 0, -5, 60),
   F("FD-0102", "🍨", "Vanilla ice cream",        "DAIRY",       "1 tub",    "Freezer upper", -3, -20, 90),
   F("FD-0103", "🥟", "Dumplings",          "COOKED_FOOD", "20 pcs",   "Freezer lower", -1, -3, 30),
+  F("FD-0105", "🌽", "Frozen corn", "VEGETABLE", "500 g", "Freezer door bin", 0, -10, 90),
   F("FD-0104", "🍗", "Chicken thighs",          "MEAT",        "600 g",    "Freezer lower", 0, -1, 30),
   F("FD-0002", "🥛", "Fresh milk",        "DAIRY",       "1 L",    "Top shelf",  -2, -3, 5),
   F("FD-0003", "🧀", "Cheese",         "DAIRY",       "200 g",    "Top shelf",  -4, -10, 40),
@@ -382,33 +533,37 @@ const SCEN = {
   spoil:   { temp: 5.5,  gas: 520, label: "Spoiled food smell detected (demo)", e: "🤢" },
   soon:    { temp: 4.5,  gas: 190, label: "Beef stored 3 days — reaching storage limit", e: "⏰", mods: { "FD-0001": { inserted_at: dISO(-3) } } },
   expired: { temp: 4.5,  gas: 200, label: "Drinking yogurt has expired", e: "📅", mods: { "FD-0012": { expiry_date: dISO(-1) } } },
+  fault:   { temp: 4.5,  gas: 190, label: "DHT11 disconnected — data unavailable", e: "⚠️", fault: true },
 };
+let invFilter = "";
 let scen = "normal", doorOpen = false, doorSince = 0, events = [], data = [];
 const foods = () => BASE_FOODS.map(f => ({ ...f, ...(SCEN[scen].mods?.[f.food_id] || {}) }));
 
 const daysBetween = (a, b) => Math.round((new Date(b + "T00:00") - new Date(a + "T00:00")) / DAY);
 const today = () => dISO(0);
+const catOf = k => ({ ...CATEGORY[k], max: CFG.cat[k] });
 const worst = rules => rules.sort((a, b) => SEV[b[0]] - SEV[a[0]])[0];
 
 /* ---- Rules (simulating the backend Freshness Engine) ---- */
 function envRules(r, openSec = 0) {
   const out = [];
-  if (r.temperature_c == null) out.push(["CHECK_FOOD", "Temperature sensor fault"]);
-  else if (r.temperature_c > 12) out.push(["CHECK_FOOD", "Temperature too high, food may spoil"]);
-  else if (r.temperature_c > 8)  out.push(["USE_SOON", "Fridge is warm, use food soon"]);
-  if (r.gas_raw > GAS_WARN)      out.push(["CHECK_FOOD", "Unusual smell — food may be spoiled"]);
-  if (openSec >= DOOR_WARN_SEC)  out.push(["USE_SOON", "Door open too long, cold air escaping"]);
+  if (r.temperature_c == null || r.humidity_pct == null) out.push(["SENSOR_FAULT", "Temperature/humidity sensor (DHT11) unavailable — data unavailable"]);
+  else if (r.temperature_c > CFG.tempCrit) out.push(["CHECK_FOOD", "Temperature too high, food may spoil"]);
+  else if (r.temperature_c > CFG.tempWarn)  out.push(["USE_SOON", "Fridge is warm, use food soon"]);
+  if (r.gas_raw > CFG.gasWarn)      out.push(["CHECK_FOOD", "Unusual smell — food may be spoiled"]);
+  if (openSec >= CFG.doorSec)  out.push(["USE_SOON", "Door open too long, cold air escaping"]);
   return out;
 }
 function foodRules(f, r) {
-  const cat = CATEGORY[f.category], out = [];
+  if (r && (r.temperature_c == null || r.humidity_pct == null)) return ["SENSOR_FAULT", "Sensor data unavailable — freshness cannot be confirmed"];
+  const cat = catOf(f.category), out = [];
   const stored = daysBetween(f.inserted_at, today()), left = daysBetween(today(), f.expiry_date);
   if (stored > cat.max) out.push(["CHECK_FOOD", `Stored ${stored} days, over the ${cat.max}-day limit`]);
   else if (stored >= cat.max - cat.warn) out.push(["USE_SOON", `Stored ${stored}/${cat.max} days, use soon`]);
   if (left < 0) out.push(["CHECK_FOOD", "Past expiry date"]);
   else if (left <= 1) out.push(["USE_SOON", "Expiring soon"]);
-  if (r && r.temperature_c > 12) out.push(["CHECK_FOOD", "Fridge temperature too high"]);
-  else if (r && r.temperature_c > 8) out.push(["USE_SOON", "Fridge is warm"]);
+  if (r && r.temperature_c > CFG.tempCrit) out.push(["CHECK_FOOD", "Fridge temperature too high"]);
+  else if (r && r.temperature_c > CFG.tempWarn) out.push(["USE_SOON", "Fridge is warm"]);
   return out.length ? worst(out) : ["FRESH", "Within storage limit"];
 }
 
@@ -420,8 +575,8 @@ function getReadings(limit = 20) {
     out.push({
       device_id: "FG-ESP32-01", food_id: "FD-0001",
       timestamp: new Date(now - i * 5 * 60000).toISOString(),
-      temperature_c: +temp.toFixed(1),
-      humidity_pct: Math.round(58 + Math.random() * 10),
+      temperature_c: s.fault && i < 3 ? null : +temp.toFixed(1),
+      humidity_pct: s.fault && i < 3 ? null : Math.round(58 + Math.random() * 10),
       gas_raw: Math.round(s.gas + (180 - s.gas) * k + (Math.random() - .5) * 40),
       door_open: i === 0 ? doorOpen : false,
     });
@@ -468,10 +623,12 @@ function render(newData = true) {
   // Fridge
   const fc = $("fridge").classList;
   fc.toggle("open", !!r.door_open);
-  fc.toggle("stink", r.gas_raw > GAS_WARN);
+  fc.toggle("stink", r.gas_raw > CFG.gasWarn);
   fc.toggle("fresh", st === "FRESH");
-  $("glow").style.background = r.gas_raw > GAS_WARN ? "#7cc242" : st === "FRESH" ? "#6fd6ff" : S.color;
-  $("led").style.color = S.color;
+  fc.toggle("fault", st === "SENSOR_FAULT");
+  $("glow").style.background = r.gas_raw > CFG.gasWarn ? "#7cc242" : st === "FRESH" ? "#6fd6ff" : S.color;
+  const noTH = r.temperature_c == null || r.humidity_pct == null;
+  $("led").style.color = st === "SENSOR_FAULT" ? "var(--check)" : S.color;  // Sensor Fault shares the red LED
   $("led").classList.toggle("blink", st !== "FRESH");
   $("doorTag").textContent = `🚪 Door open · ${openSec}s`;
   if (newData) renderFridge(list, r);  // redraw icons only on new data (avoids hover flicker)
@@ -484,42 +641,82 @@ function render(newData = true) {
   $("vWhy").textContent = why;
 
   // Sensors
-  const tc = r.temperature_c > 12 ? "var(--check)" : r.temperature_c > 8 ? "var(--soon)" : "var(--fresh)";
+  const tc = noTH ? "var(--fault)" : r.temperature_c > CFG.tempCrit ? "var(--check)" : r.temperature_c > CFG.tempWarn ? "var(--soon)" : "var(--fresh)";
   $("tIc").style.background = `color-mix(in srgb, ${tc} 20%, transparent)`; $("tIc").style.color = tc;
-  $("mTemp").innerHTML = `${r.temperature_c}<small>°C</small>`;
-  $("mTempS").textContent = r.temperature_c > 12 ? "Too hot" : r.temperature_c > 8 ? "Warm" : "Cold ≤ 8°C";
+  $("mTemp").innerHTML = noTH ? "N/A" : `${r.temperature_c}<small>°C</small>`;
+  $("mTempS").textContent = noTH ? "Sensor fault" : r.temperature_c > CFG.tempCrit ? "Too hot" : r.temperature_c > CFG.tempWarn ? "Warm" : `Cold ≤ ${CFG.tempWarn}°C`;
   $("mTempS").style.color = tc;
-  $("hRing").style.setProperty("--p", r.humidity_pct);
-  $("mHum").innerHTML = `${r.humidity_pct}<small>%</small>`;
-  const gBad = r.gas_raw > GAS_WARN, gc = gBad ? "var(--check)" : "var(--fresh)";
+  const hOut = !noTH && (r.humidity_pct < CFG.humMin || r.humidity_pct > CFG.humMax);
+  $("hRing").style.setProperty("--p", noTH ? 0 : r.humidity_pct);
+  $("hRing").style.setProperty("--c", noTH ? "var(--fault)" : hOut ? "var(--soon)" : "var(--ice)");
+  $("mHum").innerHTML = noTH ? "N/A" : `${r.humidity_pct}<small>%</small>`;
+  $("hNote").textContent = noTH ? "Sensor fault" : hOut ? `Out of range (${CFG.humMin}–${CFG.humMax}%)` : `Normal ${CFG.humMin}–${CFG.humMax}%`;
+  $("hNote").style.color = noTH ? "var(--fault)" : hOut ? "var(--soon)" : "var(--muted)";
+  const gBad = r.gas_raw > CFG.gasWarn, gc = gBad ? "var(--check)" : "var(--fresh)";
   $("gRing").style.setProperty("--p", Math.min(100, r.gas_raw / 6)); $("gRing").style.setProperty("--c", gc);
   $("gIc").style.color = gc;
   $("mGas").innerHTML = `${r.gas_raw}<small> raw</small>`;
   $("mGasS").textContent = gBad ? "Unusual smell!" : "Air is clean"; $("mGasS").style.color = gc;
-  const dc = !doorOpen ? "var(--fresh)" : openSec >= DOOR_WARN_SEC ? "var(--check)" : "var(--soon)";
+  const dc = !doorOpen ? "var(--fresh)" : openSec >= CFG.doorSec ? "var(--check)" : "var(--soon)";
   $("dIc").style.background = `color-mix(in srgb, ${dc} 20%, transparent)`; $("dIc").style.color = dc;
   $("mDoor").textContent = doorOpen ? "Open" : "Closed";
   $("mDoorS").textContent = doorOpen ? `Open ${openSec}s` : "Sealed"; $("mDoorS").style.color = dc;
 
+  // Active alerts (F20) + recommended actions (F21)
+  const al = [];
+  if (noTH) al.push({ sv: "SENSOR_FAULT", t: "Sensor fault — DHT11 data unavailable", rec: "Check the sensor wiring. Freshness cannot be confirmed." });
+  else if (r.temperature_c > CFG.tempCrit) al.push({ sv: "CHECK_FOOD", t: `Temperature ${r.temperature_c}°C (critical > ${CFG.tempCrit}°C)`, rec: "Check the storage temperature and fridge power." });
+  else if (r.temperature_c > CFG.tempWarn) al.push({ sv: "USE_SOON", t: `Temperature ${r.temperature_c}°C (warning > ${CFG.tempWarn}°C)`, rec: "Check the storage temperature; use food soon." });
+  if (r.gas_raw > CFG.gasWarn) al.push({ sv: "CHECK_FOOD", t: `Gas level high (${r.gas_raw} raw)`, rec: "Check food before use; discard spoiled items per procedure." });
+  if (doorOpen) al.push(openSec >= CFG.doorSec
+    ? { sv: "USE_SOON", t: `Door open ${openSec}s (limit ${CFG.doorSec}s)`, rec: "Close the fridge door now." }
+    : { sv: "WARN", t: `Door open ${openSec}s`, rec: "Close the door to keep food cold." });
+  if (hOut) al.push({ sv: "WARN", t: `Humidity ${r.humidity_pct}% out of range`, rec: "Check the door seal and crisper drawer." });
+  list.forEach(f => {
+    const [fs, fwhy] = foodRules(f, null);   // storage duration + expiry only
+    if (fs !== "FRESH") al.push({ sv: fs, id: f.food_id, t: `${f.emoji} ${f.food_name}: ${fwhy.toLowerCase()}`,
+      rec: fs === "USE_SOON" ? "Use this item soon." : "Check before use; discard if spoiled." });
+  });
+  const lvl = x => x.sv === "WARN" ? 0.5 : SEV[x.sv];
+  al.sort((a, b) => lvl(b) - lvl(a));
+  const aHtml = al.length ? al.map(x => {
+      const c = x.sv === "WARN" ? "var(--ice)" : STATUS[x.sv].color, lab = x.sv === "WARN" ? "Warning" : STATUS[x.sv].short;
+      return `<li style="--c:${c}" ${x.id ? `data-id="${x.id}"` : ""}><div><b>${lab}</b> ${x.t}<small>👉 ${x.rec}</small></div></li>`;
+    }).join("") : `<li class="ok"><div>✅ No active alerts<small>All sensors and food items are within limits.</small></div></li>`;
+  if ($("alist").dataset.sig !== aHtml) {
+    $("alist").dataset.sig = aHtml;
+    $("alist").innerHTML = aHtml;
+    $("alist").querySelectorAll("li[data-id]").forEach(li => li.onclick = () => openFood(li.dataset.id));
+  }
+  const top = al[0];
+  $("aCount").textContent = al.length;
+  $("aCount").style.background = !top ? "var(--fresh)" : top.sv === "WARN" ? "var(--ice)" : STATUS[top.sv].color;
+
   // Food: counts + items needing attention
-  const cnt = { FRESH: 0, USE_SOON: 0, CHECK_FOOD: 0 };
+  const cnt = { FRESH: 0, USE_SOON: 0, CHECK_FOOD: 0, SENSOR_FAULT: 0 };
   fr.forEach(x => cnt[x.res[0]]++);
-  $("counts").innerHTML = `<span class="cnt" style="background:var(--muted)">${list.length} items</span>` +
-    Object.keys(cnt).filter(k => cnt[k]).map(k => `<span class="cnt" style="background:${STATUS[k].color}">${cnt[k]} ${STATUS[k].short.toLowerCase()}</span>`).join("");
-  const attn = fr.filter(x => x.res[0] !== "FRESH").sort((a, b) => SEV[b.res[0]] - SEV[a.res[0]]);
-  $("attn").innerHTML = attn.length
-    ? attn.slice(0, 4).map(x => `<li data-id="${x.f.food_id}"><span class="em">${x.f.emoji}</span>
+  const chips = `<button class="cnt ${invFilter ? "" : "sel"}" data-f="" style="background:var(--muted)">${list.length} items</button>` +
+    Object.keys(cnt).filter(k => cnt[k]).map(k => `<button class="cnt ${invFilter === k ? "sel" : ""}" data-f="${k}" style="background:${STATUS[k].color}">${cnt[k]} ${STATUS[k].short.toLowerCase()}</button>`).join("");
+  const order = fr.slice().sort((a, b) => SEV[b.res[0]] - SEV[a.res[0]] || a.f.food_name.localeCompare(b.f.food_name));
+  const shown = invFilter ? order.filter(x => x.res[0] === invFilter) : order;
+  const listHtml = shown.map(x => `<li data-id="${x.f.food_id}"><span class="em">${x.f.emoji}</span>
         <div><b>${x.f.food_name}</b><small>${x.res[1]} · ${x.f.storage_location}</small></div>
         <span class="pill" style="margin-left:auto;background:${STATUS[x.res[0]].color}">${STATUS[x.res[0]].short}</span></li>`).join("")
-    : `<li style="cursor:default">✨ All food is within its storage limit</li>`;
-  $("attn").querySelectorAll("li[data-id]").forEach(li => li.onclick = () => openFood(li.dataset.id));
+    || `<li style="cursor:default">No items in this group</li>`;
+  if ($("attn").dataset.sig !== chips + listHtml) {   // only redraw when something changed
+    $("attn").dataset.sig = chips + listHtml;
+    $("counts").innerHTML = chips;
+    $("attn").innerHTML = listHtml;
+    $("counts").querySelectorAll(".cnt").forEach(c => c.onclick = () => { invFilter = c.dataset.f; render(false); });
+    $("attn").querySelectorAll("li[data-id]").forEach(li => li.onclick = () => openFood(li.dataset.id));
+  }
 
   $("events").innerHTML = events.map(e => `<li><span class="e">${e.e}</span><div>${e.text}<time>${hhmm(e.t)}</time></div></li>`).join("");
 
   drawChart([...data].reverse());
   $("rows").innerHTML = data.map(x => {
     const rs = envRules(x); const [s] = rs.length ? worst(rs) : ["FRESH"];
-    return `<tr><td>${hhmm(x.timestamp)}</td><td>${x.temperature_c}°C</td><td>${x.humidity_pct}%</td>
+    return `<tr><td>${hhmm(x.timestamp)}</td><td>${x.temperature_c ?? "N/A"}${x.temperature_c == null ? "" : "°C"}</td><td>${x.humidity_pct ?? "N/A"}${x.humidity_pct == null ? "" : "%"}</td>
       <td>${x.gas_raw}</td><td>${x.door_open ? "Open" : "Closed"}</td>
       <td><span class="pill" style="background:${STATUS[s].color}">${STATUS[s].text}</span></td></tr>`;
   }).join("");
@@ -528,7 +725,7 @@ function render(newData = true) {
 /* ---- Detail popup ---- */
 function openFood(id) {
   const f = foods().find(x => x.food_id === id); if (!f) return;
-  const cat = CATEGORY[f.category], [st, reason] = foodRules(f, data[0]), S = STATUS[st];
+  const cat = catOf(f.category), [st, reason] = foodRules(f, data[0]), S = STATUS[st];
   const stored = daysBetween(f.inserted_at, today()), left = daysBetween(today(), f.expiry_date);
   $("sheet").style.setProperty("--c", S.color);
   $("dEmoji").textContent = f.emoji;
@@ -541,7 +738,7 @@ function openFood(id) {
   $("dIn").textContent = vnDate(f.inserted_at);
   $("dMfg").textContent = vnDate(f.manufacture_date);
   $("dExp").textContent = vnDate(f.expiry_date);
-  $("dLeft").textContent = left < 0 ? `Expired ${-left} day(s) ago` : left === 0 ? "Expires today" : `${left} day(s)`;
+  $("dLeft").textContent = !f.expiry_date ? "No expiry date" : left < 0 ? `Expired ${-left} day(s) ago` : left === 0 ? "Expires today" : `${left} day(s)`;
   $("dLeft").style.color = left < 0 ? "var(--check)" : left <= 1 ? "var(--soon)" : "";
   const sSt = stored > cat.max ? "CHECK_FOOD" : stored >= cat.max - cat.warn ? "USE_SOON" : "FRESH";
   $("dDays").innerHTML = `${stored}<small> / ${cat.max} days</small>`;
@@ -564,14 +761,16 @@ function drawChart(pts) {
   const x = i => P.l + i * (W - P.l - P.r) / (pts.length - 1);
   const y = v => P.t + (1 - v / 16) * (H - P.t - P.b);
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  let g = `<rect x="${P.l}" y="${y(8)}" width="${W-P.l-P.r}" height="${y(0)-y(8)}" fill="var(--fresh)" opacity=".08"/>
-           <rect x="${P.l}" y="${y(12)}" width="${W-P.l-P.r}" height="${y(8)-y(12)}" fill="var(--soon)" opacity=".1"/>
-           <rect x="${P.l}" y="${y(16)}" width="${W-P.l-P.r}" height="${y(12)-y(16)}" fill="var(--check)" opacity=".08"/>`;
+  let g = `<rect x="${P.l}" y="${y(CFG.tempWarn)}" width="${W-P.l-P.r}" height="${y(0)-y(CFG.tempWarn)}" fill="var(--fresh)" opacity=".08"/>
+           <rect x="${P.l}" y="${y(CFG.tempCrit)}" width="${W-P.l-P.r}" height="${y(CFG.tempWarn)-y(CFG.tempCrit)}" fill="var(--soon)" opacity=".1"/>
+           <rect x="${P.l}" y="${y(16)}" width="${W-P.l-P.r}" height="${y(CFG.tempCrit)-y(16)}" fill="var(--check)" opacity=".08"/>`;
   [0, 4, 8, 12, 16].forEach(v => g += `<text x="${P.l-6}" y="${y(v)+4}" font-size="11" text-anchor="end" fill="var(--muted)">${v}°</text>`);
-  g += `<path d="${pts.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.temperature_c)}`).join("")}" fill="none" stroke="var(--ice)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  let d = "", pen = false;
+  pts.forEach((p, i) => { if (p.temperature_c == null) { pen = false; return; } d += `${pen ? "L" : "M"}${x(i)},${y(p.temperature_c)}`; pen = true; });
+  g += `<path d="${d}" fill="none" stroke="var(--ice)" stroke-width="2.5" stroke-linejoin="round"/>`;
   pts.forEach((p, i) => {
-    const c = p.temperature_c > 12 ? "var(--check)" : p.temperature_c > 8 ? "var(--soon)" : "var(--fresh)";
-    g += `<circle cx="${x(i)}" cy="${y(p.temperature_c)}" r="3.5" fill="${c}"><title>${hhmm(p.timestamp)} — ${p.temperature_c}°C</title></circle>`;
+    const c = p.temperature_c > CFG.tempCrit ? "var(--check)" : p.temperature_c > CFG.tempWarn ? "var(--soon)" : "var(--fresh)";
+    if (p.temperature_c != null) g += `<circle cx="${x(i)}" cy="${y(p.temperature_c)}" r="3.5" fill="${c}"><title>${hhmm(p.timestamp)} — ${p.temperature_c}°C</title></circle>`;
     if (i % 5 === 0 || i === pts.length - 1)
       g += `<text x="${x(i)}" y="${H-5}" font-size="11" text-anchor="${i === pts.length-1 ? "end" : "middle"}" fill="var(--muted)">${hhmm(p.timestamp)}</text>`;
   });
@@ -594,6 +793,161 @@ document.querySelectorAll("#sim button[data-s]").forEach(b => b.onclick = () => 
   addEvent(SCEN[scen].e, SCEN[scen].label);
   render(true);
 });
+
+/* ===================== ROLES (demo switch — real login is T08) ===================== */
+let role = "user";
+function setRole(v) {
+  role = v;
+  document.body.classList.toggle("is-admin", role === "admin");
+  $("roleBadge").textContent = role === "admin" ? "ADMIN" : "USER";
+  $("roleSel").value = role;
+}
+$("roleSel").onchange = e => { setRole(e.target.value); addEvent(role === "admin" ? "🛡️" : "👤", `Signed in as ${role === "admin" ? "Administrator" : "User"} (demo)`); render(false); };
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600); }
+function openModal(id) { $(id).hidden = false; }
+function closeAll() { document.querySelectorAll(".modal").forEach(m => m.hidden = true); stopCamera(); }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeAll);
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m) closeAll(); }));
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeAll(); });
+
+/* ===================== SETTINGS: Monitoring limits (UC07) ===================== */
+function fillSettings(src) {
+  const f = $("setForm");
+  ["tempWarn", "tempCrit", "humMin", "humMax", "gasWarn", "doorSec"].forEach(k => f[k].value = src[k]);
+  $("catFields").innerHTML = Object.keys(CATEGORY).map(k =>
+    `<label>${CATEGORY[k].name}<input type="number" min="1" name="cat_${k}" value="${src.cat[k]}"></label>`).join("");
+  $("cfgMeta").textContent = CFG.updatedAt ? `${CFG.updatedBy}, ${new Date(CFG.updatedAt).toLocaleString("en-GB")}` : CFG.updatedBy;
+  $("setErr").textContent = "";
+  f.querySelectorAll("input").forEach(i => i.classList.remove("bad"));
+}
+$("setBtn").onclick = () => { if (role !== "admin") return; fillSettings(CFG); openModal("setModal"); };
+$("setReset").onclick = () => fillSettings(DEFAULTS);
+$("setForm").onsubmit = e => {
+  e.preventDefault();
+  if (role !== "admin") return;
+  const f = e.target, v = {}, errs = [], bad = [];
+  const num = (name, label, cond, msg) => {
+    const x = parseFloat(f[name].value);
+    if (isNaN(x)) { errs.push(`${label} is required.`); bad.push(name); return NaN; }
+    if (cond && !cond(x)) { errs.push(msg); bad.push(name); }
+    return x;
+  };
+  v.tempWarn = num("tempWarn", "Warning temperature", x => x > -30 && x < 30, "Warning temperature must be between -30 and 30 °C.");
+  v.tempCrit = num("tempCrit", "Critical temperature", x => x > v.tempWarn, "Critical temperature must be higher than the warning temperature.");
+  v.humMin = num("humMin", "Humidity min", x => x >= 0 && x <= 100, "Humidity must be 0–100%.");
+  v.humMax = num("humMax", "Humidity max", x => x > v.humMin && x <= 100, "Humidity max must be above min and ≤ 100%.");
+  v.gasWarn = num("gasWarn", "Gas threshold", x => x > 0, "Gas threshold must be positive.");
+  v.doorSec = num("doorSec", "Door-open time", x => x >= 5 && Number.isInteger(x), "Door-open time must be a whole number ≥ 5 s.");
+  v.cat = {};
+  Object.keys(CATEGORY).forEach(k => v.cat[k] = num(`cat_${k}`, `${CATEGORY[k].name} limit`, x => x >= 1 && Number.isInteger(x), `${CATEGORY[k].name}: limit must be a whole number ≥ 1 day.`));
+  f.querySelectorAll("input").forEach(i => i.classList.toggle("bad", bad.includes(i.name)));
+  if (errs.length) { $("setErr").textContent = errs[0]; return; }
+  Object.assign(CFG, v, { updatedBy: "Administrator", updatedAt: Date.now() });
+  addEvent("⚙️", "Monitoring limits updated by Administrator");
+  closeAll(); toast("✅ Monitoring limits saved"); render(true);
+};
+
+/* ===================== REGISTER / UPDATE FOOD BY QR (UC01 / UC02) ===================== */
+const ICONS = { MEAT: "🥩🍗🐟🦐🥓🦀", DAIRY: "🥛🧀🍨🍮🥤🧈🥚", VEGETABLE: "🥦🥕🍅🥬🌽🥒🧅", FRUIT: "🍎🍇🍌🍓🍊🍉🥭", COOKED_FOOD: "🍲🍱🥟🍛🍝🍜🥘" };
+let qr = null, editingId = null;
+
+function openRegister(existingId) {
+  if (role !== "admin") return;
+  $("scanErr").textContent = ""; $("manualId").value = "";
+  $("scanStep").hidden = false; $("foodForm").hidden = true;
+  $("qrReader").textContent = "Camera preview appears here";
+  openModal("regModal");
+  if (existingId) handleScan(existingId);
+}
+$("regBtn").onclick = () => openRegister();
+$("editBtn").onclick = () => { const id = $("dId").textContent; closeAll(); openRegister(id); };
+
+async function startCamera() {
+  $("scanErr").textContent = "";
+  if (!window.Html5Qrcode) { $("scanErr").textContent = "QR scanner library not loaded (offline?). Use Simulate scan or type the ID."; return; }
+  try {
+    $("qrReader").textContent = "";
+    qr = new Html5Qrcode("qrReader");
+    await qr.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, text => { stopCamera(); handleScan(text); });
+  } catch (err) {
+    qr = null;
+    $("qrReader").textContent = "Camera unavailable";
+    $("scanErr").textContent = "Cannot open the camera (permission denied, no camera, or page opened as a local file). Use Simulate scan or type the ID.";
+  }
+}
+function stopCamera() { if (qr) { qr.stop().catch(() => {}); qr = null; } }
+$("camBtn").onclick = startCamera;
+$("simScanBtn").onclick = () => handleScan(JSON.stringify({ food_id: "FD-" + (200 + Math.floor(Math.random() * 800)), food_name: "Greek yogurt", category: "DAIRY", expiry_date: dISO(10) }));
+$("manualBtn").onclick = () => {
+  const v = $("manualId").value.trim();
+  if (!/^[A-Za-z0-9_-]{3,20}$/.test(v)) { $("scanErr").textContent = "Enter a valid Food ID (3–20 letters, digits, - or _)."; return; }
+  handleScan(v);
+};
+
+// QR content can be a plain ID ("FD-0200") or JSON with details
+function handleScan(text) {
+  let q = {};
+  try { const j = JSON.parse(text); q = typeof j === "object" && j ? j : { food_id: String(j) }; } catch { q = { food_id: String(text).trim() }; }
+  const id = (q.food_id || q.id || "").trim();
+  if (!id) { $("scanErr").textContent = "QR code does not contain a Food ID."; return; }
+  const existing = BASE_FOODS.find(f => f.food_id === id);
+  editingId = existing ? id : null;
+  const item = existing ? { ...existing } : {
+    food_id: id, food_name: q.food_name || q.name || "", category: q.category || "", quantity: q.quantity || "",
+    storage_location: "", inserted_at: dISO(0), manufacture_date: q.manufacture_date || "", expiry_date: q.expiry_date || "", emoji: "" };
+  fillFoodForm(item);
+  $("scanStep").hidden = true; $("foodForm").hidden = false;
+  $("modeTag").textContent = existing ? "EXISTING ITEM — UPDATE (UC02)" : "NEW ITEM";
+  $("modeTag").classList.toggle("edit", !!existing);
+  $("regTitle").textContent = existing ? "Update food item" : "Register food item";
+}
+
+function fillFoodForm(it) {
+  const f = $("foodForm");
+  f.category.innerHTML = `<option value="">— choose —</option>` + Object.keys(CATEGORY).map(k => `<option value="${k}">${CATEGORY[k].name}</option>`).join("");
+  f.storage_location.innerHTML = `<option value="">— choose —</option>` +
+    [...document.querySelectorAll(".zone[data-zone]")].map(z => `<option>${z.dataset.zone}</option>`).join("");
+  ["food_id", "food_name", "quantity", "inserted_at", "manufacture_date", "expiry_date"].forEach(k => f[k].value = it[k] || "");
+  f.category.value = it.category || ""; f.storage_location.value = it.storage_location || "";
+  fillIcons(it.category, it.emoji);
+  f.querySelectorAll(".bad").forEach(el => el.classList.remove("bad"));
+  $("formErr").textContent = ""; updateSuggest();
+}
+function fillIcons(cat, current) {
+  const list = [...(ICONS[cat] || "🍽️🥫📦")];
+  if (current && !list.includes(current)) list.unshift(current);
+  $("foodForm").emoji.innerHTML = list.map(e => `<option ${e === current ? "selected" : ""}>${e}</option>`).join("");
+}
+function updateSuggest() {
+  const f = $("foodForm"), k = f.category.value;
+  if (!k) { $("suggest").textContent = "💡 Choose a category to see its suggested storage-duration limit."; return; }
+  const max = CFG.cat[k], useBy = new Date(new Date(f.inserted_at.value + "T00:00").getTime() + max * DAY).toLocaleDateString("en-GB");
+  $("suggest").innerHTML = `💡 Suggested storage limit for <b>${CATEGORY[k].name}</b>: <b>${max} days</b> → use by <b>${useBy}</b>`;
+}
+$("foodForm").category.onchange = e => { fillIcons(e.target.value); updateSuggest(); };
+$("backBtn").onclick = () => { $("foodForm").hidden = true; $("scanStep").hidden = false; };
+
+$("foodForm").onsubmit = e => {
+  e.preventDefault();
+  if (role !== "admin") return;
+  const f = e.target, bad = [], errs = [];
+  [["food_name", "Name"], ["category", "Category"], ["quantity", "Quantity"], ["storage_location", "Storage location"]].forEach(([k, l]) => {
+    if (!f[k].value.trim()) { bad.push(k); errs.push(`${l} is required.`); }
+  });
+  if (f.manufacture_date.value && f.expiry_date.value && f.expiry_date.value < f.manufacture_date.value) { bad.push("expiry_date"); errs.push("Expiry date cannot be before the manufacture date."); }
+  f.querySelectorAll("input,select").forEach(el => el.classList.toggle("bad", bad.includes(el.name)));
+  if (errs.length) { $("formErr").textContent = errs[0]; return; }
+  const item = {
+    food_id: f.food_id.value, food_name: f.food_name.value.trim(), category: f.category.value, emoji: f.emoji.value,
+    quantity: f.quantity.value.trim(), storage_location: f.storage_location.value, inserted_at: f.inserted_at.value,
+    manufacture_date: f.manufacture_date.value || null, expiry_date: f.expiry_date.value || null };
+  const i = BASE_FOODS.findIndex(x => x.food_id === item.food_id);
+  if (i >= 0) BASE_FOODS[i] = item; else BASE_FOODS.push(item);
+  addEvent("🏷️", `${i >= 0 ? "Food updated" : "Food registered"}: ${item.food_name} (${item.food_id})`);
+  closeAll(); toast(`✅ Saved: ${item.food_name} · ${item.storage_location}`); render(true);
+};
+setRole("user");
 
 addEvent("⚡", "Fresh Guard device connected");
 addEvent("✅", "Fridge operating normally");
